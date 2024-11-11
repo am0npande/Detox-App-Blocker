@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">AppBlocker</string>
+    <string name="title_activity_overlay">OverlayActivity</string>
+</resources>
