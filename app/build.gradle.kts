@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.example.appblocker"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.appblocker"
         minSdk = 30
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -56,4 +56,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+        implementation("androidx.datastore:datastore-preferences:1.1.1")
+
 }

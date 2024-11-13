@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.FrameLayout
@@ -31,16 +32,12 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -60,6 +57,7 @@ class MainActivity : ComponentActivity() {
     private var frameLayout: FrameLayout? = null
     private var coolDownIsActive = mutableStateOf(false)
     private var coolDowntimeRemaining = mutableIntStateOf(0)
+    private var isTimmerRunning = mutableStateOf(false)
 
 
     @SuppressLint("InlinedApi", "DefaultLocale")
@@ -75,7 +73,11 @@ class MainActivity : ComponentActivity() {
             appDetectedReceiver, IntentFilter("com.example.appblocker.APP_DETECTED"),
             RECEIVER_EXPORTED
         )
-        registerReceiver(coolDownTimerReceiver,IntentFilter("com.example.appblocker.COOL_DOWN_TIMER"), RECEIVER_EXPORTED)
+        registerReceiver(
+            coolDownTimerReceiver,
+            IntentFilter("com.example.appblocker.COOL_DOWN_TIMER"),
+            RECEIVER_EXPORTED
+        )
 
 
 
@@ -87,6 +89,7 @@ class MainActivity : ComponentActivity() {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
+
                     if (coolDownIsActive.value) {
                         Text(
                             text = "CoolDown In:",
@@ -98,7 +101,7 @@ class MainActivity : ComponentActivity() {
                         )
                         Spacer(Modifier.height(3.dp))
                         Text(
-                            text = String.format("00:%02d",coolDowntimeRemaining.intValue),
+                            text = String.format("00:%02d", coolDowntimeRemaining.intValue),
                             fontSize = 50.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
@@ -106,7 +109,7 @@ class MainActivity : ComponentActivity() {
                     } else {
                         Button(
                             onClick = { startMonitoringService() },
-                            enabled = !coolDownIsActive.value
+                            enabled = !isTimmerRunning.value
                         ) {
                             Text("Start Monitoring")
                         }
@@ -131,11 +134,20 @@ class MainActivity : ComponentActivity() {
         sendBroadcast(intent)
     }
 
+    private val appList = mutableListOf(
+        "com.instagram.android",
+        "com.snapchat.android",
+        "com.google.android.youtube",
+        "com.twitter.android"
+    )
+
     private val appDetectedReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             packageName = intent?.getStringExtra("PACKAGE_NAME")
+            isTimmerRunning.value = intent?.getBooleanExtra("SHOW_OVERLAY_VISIBLE", false) ?: false
 
-            if (packageName == "com.instagram.android")
+            Log.d("app detected", packageName!!)
+            if (packageName!! in appList)
                 showOverlay()
             else
                 removeOverlay()
@@ -143,15 +155,14 @@ class MainActivity : ComponentActivity() {
         }
     }
     private val coolDownTimerReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?){
-            coolDowntimeRemaining.intValue = intent?.getIntExtra("COOL_DOWN_TIMER",0)!!
-            coolDownIsActive.value = intent?.getBooleanExtra("IS_ACTIVE",false)!!
+        override fun onReceive(context: Context?, intent: Intent?) {
+            coolDowntimeRemaining.intValue = intent?.getIntExtra("COOL_DOWN_TIMER", 0)!!
+            coolDownIsActive.value = intent?.getBooleanExtra("IS_ACTIVE", false)!!
         }
     }
 
     @SuppressLint("ObsoleteSdkInt")
     fun showOverlay() {
-
         val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
         if (composeView == null) {
@@ -214,6 +225,7 @@ class MainActivity : ComponentActivity() {
     private fun stopMonitoringService() {
 
         coolDownIsActive.value = false
+        isTimmerRunning.value = false
         val stopIntent = Intent(this, AppMonitoringService::class.java).apply {
             action = AppMonitoringService.Actions.STOP.toString()
         }
@@ -282,6 +294,7 @@ class MainActivity : ComponentActivity() {
             "1 hr" to 3_600_000L,
             "2 hr" to 7_200_000L
         )
+
 
 
         Box(

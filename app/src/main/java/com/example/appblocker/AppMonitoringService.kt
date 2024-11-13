@@ -11,9 +11,7 @@ import android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.IntentFilter
 import android.os.Build
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
@@ -24,7 +22,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.TreeMap
 import java.util.concurrent.TimeUnit
 
@@ -83,10 +80,16 @@ class AppMonitoringService : Service() {
         startForeground(2, notification)
 
 
+        var lastForegroundApp = ""
         while (!isTimerRunning) {
-            var currentForegroundApp = getForegroundAppPackageName(this@AppMonitoringService)
+            val currentForegroundApp = getForegroundAppPackageName(this@AppMonitoringService)
 
-            if (!iscoolDownRunning) sendAppDetectedBroadcast(currentForegroundApp)
+//            if (currentForegroundApp == lastForegroundApp) {
+//                return
+//            }
+//            lastForegroundApp = currentForegroundApp
+
+            if (!iscoolDownRunning && currentForegroundApp != "unknown" ) sendAppDetectedBroadcast(currentForegroundApp)
 
             if (iscoolDownRunning && packageName == currentForegroundApp) {
                 Intent(this, MainActivity::class.java).apply {
@@ -103,6 +106,7 @@ class AppMonitoringService : Service() {
     private fun sendAppDetectedBroadcast(packageName: String) {
         val intent = Intent("com.example.appblocker.APP_DETECTED")
         intent.putExtra("PACKAGE_NAME", packageName)
+        intent.putExtra("SHOW_OVERLAY_VISIBLE", !isTimerRunning)
         sendBroadcast(intent)
     }
 
